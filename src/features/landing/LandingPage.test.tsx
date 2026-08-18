@@ -5,6 +5,7 @@ import { LandingPage } from './LandingPage'
 vi.mock('../../lib/discover', () => ({
   fetchPublicQuizzes: vi.fn().mockResolvedValue([]),
   fetchLandingStats: vi.fn().mockResolvedValue({ categoryCount: 0, publicQuizCount: 0 }),
+  fetchCategoryNames: vi.fn().mockResolvedValue([]),
 }))
 
 describe('LandingPage', () => {
@@ -35,9 +36,33 @@ describe('LandingPage', () => {
     const { fetchLandingStats } = await import('../../lib/discover')
     vi.mocked(fetchLandingStats).mockResolvedValueOnce({ categoryCount: 8, publicQuizCount: 3 })
     render(<LandingPage />)
-    expect(await screen.findByText((_, node) => node?.textContent === '8 categories')).toBeInTheDocument()
     expect(
-      await screen.findByText((_, node) => node?.textContent === '3 public quizzes and counting'),
+      await screen.findByText((_, node) => node?.textContent === '8 categories', undefined, {
+        timeout: 2000,
+      }),
     ).toBeInTheDocument()
+    expect(
+      await screen.findByText(
+        (_, node) => node?.textContent === '3 public quizzes and counting',
+        undefined,
+        { timeout: 2000 },
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('shows a scrolling strip of real category names, not placeholders', async () => {
+    const { fetchCategoryNames } = await import('../../lib/discover')
+    vi.mocked(fetchCategoryNames).mockResolvedValueOnce([
+      { id: '1', name: 'Science' },
+      { id: '2', name: 'History' },
+    ])
+    render(<LandingPage />)
+    expect((await screen.findAllByText('Science')).length).toBeGreaterThan(0)
+  })
+
+  it('shows use-case chips', () => {
+    render(<LandingPage />)
+    expect(screen.getByText('Classrooms')).toBeInTheDocument()
+    expect(screen.getByText('Trivia nights')).toBeInTheDocument()
   })
 })

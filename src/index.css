@@ -11,3 +11,12 @@ body,
 body {
   @apply bg-slate-950 text-white antialiased;
 }
+
+@keyframes rally-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}

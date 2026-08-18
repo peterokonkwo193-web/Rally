@@ -37,6 +37,28 @@ export async function fetchPublicQuizzes(limit: number): Promise<PublicQuiz[]> {
   }))
 }
 
+export interface CategoryName {
+  id: string
+  name: string
+}
+
+/** Real category names for the landing page's marquee strip — same
+ * id/name/sort_order shape CreateSessionScreen already queries, not a new
+ * shape. `categories` is public-read (CLAUDE.md rule 5's carve-out). */
+export async function fetchCategoryNames(): Promise<CategoryName[]> {
+  const supabase = requireSupabase()
+  const { data, error } = await supabase
+    .from('categories')
+    .select('id, name')
+    .order('sort_order', { ascending: true })
+
+  if (error || !data) {
+    throw new Error(error?.message ?? 'Could not load categories.')
+  }
+
+  return data
+}
+
 export interface LandingStats {
   categoryCount: number
   publicQuizCount: number
