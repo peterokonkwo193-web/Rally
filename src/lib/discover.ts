@@ -36,3 +36,23 @@ export async function fetchPublicQuizzes(limit: number): Promise<PublicQuiz[]> {
     categoryName: (row.categories as unknown as { name: string } | null)?.name ?? null,
   }))
 }
+
+export interface LandingStats {
+  categoryCount: number
+  publicQuizCount: number
+}
+
+/** Real counts for the landing page's stats row — deliberately not
+ * fabricated numbers. Both queries are head-only (no rows fetched, just
+ * counts) against tables that are already publicly readable. */
+export async function fetchLandingStats(): Promise<LandingStats> {
+  const supabase = requireSupabase()
+  const [categories, quizzes] = await Promise.all([
+    supabase.from('categories').select('id', { count: 'exact', head: true }),
+    supabase.from('quizzes').select('id', { count: 'exact', head: true }).eq('is_public', true),
+  ])
+  return {
+    categoryCount: categories.count ?? 0,
+    publicQuizCount: quizzes.count ?? 0,
+  }
+}
