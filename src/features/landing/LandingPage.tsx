@@ -121,11 +121,23 @@ export function LandingPage() {
       <div className="relative z-10">
         {/* Hero */}
         <div className="relative">
+          <FloatingShapes count={16} />
           <div
             className="pointer-events-none absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-600/20 blur-3xl"
             aria-hidden="true"
           />
-          <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-8 px-6 py-16 text-center sm:py-20">
+          <div
+            className="pointer-events-none absolute -left-10 top-6 h-56 w-56 rounded-full bg-answer-red/10 blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute -right-10 bottom-0 h-56 w-56 rounded-full bg-answer-green/10 blur-3xl"
+            aria-hidden="true"
+          />
+          <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-5 px-6 py-10 text-center sm:gap-6 sm:py-14">
+            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-indigo-300">
+              Live multiplayer · Speed-scored
+            </span>
             <RallyLogo className="w-48 sm:w-64" />
             <p className="max-w-lg text-lg text-slate-300 sm:text-xl">
               A live multiplayer quiz game. Project it on a screen, everyone answers on
