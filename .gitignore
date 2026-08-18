@@ -1,0 +1,21 @@
+node_modules
+dist
+dist-ssr
+*.local
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# supabase
+supabase/.temp
+supabase/.branches
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
