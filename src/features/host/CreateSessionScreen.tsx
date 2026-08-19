@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, callEdgeFunction } from '../../lib/api'
 import { requireSupabase } from '../../lib/supabase'
 import { useLobbyStore } from '../../stores/useLobbyStore'
@@ -113,8 +113,15 @@ export function CreateSessionScreen() {
 
   // Arrived via a Discover/landing-page "Host This Quiz" link — go
   // straight to create-session with that quiz, no category/generate step.
+  // Guarded by a ref (not just the dependency array) because React 18
+  // StrictMode double-invokes mount effects in dev, and without the guard
+  // that fires create-session twice — two real sessions/PINs from one
+  // page load, which also raced useGameChannel into joining the first
+  // session's channel and then immediately abandoning it for the second.
+  const directHostStarted = useRef(false)
   useEffect(() => {
-    if (!directQuizId) return
+    if (!directQuizId || directHostStarted.current) return
+    directHostStarted.current = true
     setPhase('creating')
     callEdgeFunction<CreateSessionResponse>('create-session', { quizId: directQuizId })
       .then((session) => {
@@ -169,7 +176,7 @@ export function CreateSessionScreen() {
         <div className="text-center">
           <RallyLogo className="mx-auto mb-4 w-24 sm:w-28" />
           <p className="text-lg font-medium text-slate-400 sm:text-xl">
-            Join at your-domain.example
+            Join at {window.location.host}
           </p>
           <p
             className="mt-2 text-6xl font-black tracking-widest text-white sm:text-8xl"

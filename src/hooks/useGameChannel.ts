@@ -28,6 +28,13 @@ export function useGameChannel(
   useEffect(() => {
     if (!sessionId) return
 
+    // Guards against a stale channel instance's terminal status (e.g. the
+    // CLOSED it gets from this same effect's own cleanup on unmount/
+    // sessionId-change) landing after a newer effect run already has its
+    // own channel connected, which would otherwise overwrite 'connected'
+    // with 'error' for a channel nothing is using anymore.
+    let stale = false
+
     setConnectionStatus('connecting')
     const channel = getRoomChannel(sessionId, presence?.key)
 
@@ -62,13 +69,18 @@ export function useGameChannel(
     subscribeChannel(
       channel,
       () => {
+        if (stale) return
         if (presence) trackPresence(channel, presence.payload)
         setConnectionStatus('connected')
       },
-      () => setConnectionStatus('error'),
+      () => {
+        if (stale) return
+        setConnectionStatus('error')
+      },
     )
 
     return () => {
+      stale = true
       requireSupabase().removeChannel(channel)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
