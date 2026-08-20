@@ -66,10 +66,16 @@ Deno.serve(async (req) => {
     )
   }
 
-  const { error: updateError } = await admin
+  // Guarded on status = 'revealing' (not just id) — see start-question /
+  // lock-question for the same pattern; prevents a double-click from
+  // broadcasting the leaderboard event twice.
+  const { data: updated, error: updateError } = await admin
     .from('game_sessions')
     .update({ status: 'leaderboard' })
     .eq('id', sessionId)
+    .eq('status', 'revealing')
+    .select('id')
+    .maybeSingle()
 
   if (updateError) {
     console.error('show-leaderboard update error', updateError)
@@ -77,6 +83,13 @@ Deno.serve(async (req) => {
       'LEADERBOARD_FAILED',
       'Could not show the leaderboard.',
       500,
+    )
+  }
+  if (!updated) {
+    return errorResponse(
+      'INVALID_STATUS',
+      'The leaderboard was already shown by another request.',
+      409,
     )
   }
 

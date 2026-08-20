@@ -6,6 +6,7 @@ import {
 import { calculateAnswerPoints } from '../_shared/scoring.ts'
 import { broadcastToRoom } from '../_shared/broadcast.ts'
 import { answerTextMatches } from '../_shared/textAnswer.ts'
+import { checkAndRecordRateLimit } from '../_shared/rateLimit.ts'
 
 // lock-question transitions directly from question_active to revealing
 // (no separate question_locked stop — see the game-loop plan's decision
@@ -17,6 +18,11 @@ import { answerTextMatches } from '../_shared/textAnswer.ts'
 const VALID_FROM_STATUSES = ['question_active', 'revealing']
 const GRACE_MS = 300
 const BROADCAST_THROTTLE_MS = 300
+// A real player never approaches this — it's a safety net against a
+// scripted client hammering submit-answer across many joined sessions,
+// not a constraint anyone playing normally would ever hit.
+const SUBMIT_RATE_LIMIT_WINDOW_SECONDS = 60
+const SUBMIT_RATE_LIMIT_MAX_EVENTS = 60
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -54,6 +60,20 @@ Deno.serve(async (req) => {
   }
 
   const admin = createAdminClient()
+
+  const { allowed } = await checkAndRecordRateLimit(
+    admin,
+    `submit-answer:${userData.user.id}`,
+    SUBMIT_RATE_LIMIT_WINDOW_SECONDS,
+    SUBMIT_RATE_LIMIT_MAX_EVENTS,
+  )
+  if (!allowed) {
+    return errorResponse(
+      'RATE_LIMITED',
+      'Too many answers submitted recently. Slow down.',
+      429,
+    )
+  }
 
   const { data: session, error: sessionError } = await admin
     .from('game_sessions')

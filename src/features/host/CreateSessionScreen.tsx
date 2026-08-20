@@ -77,6 +77,7 @@ export function CreateSessionScreen() {
       .from('categories')
       .select('id, name')
       .order('sort_order', { ascending: true })
+      .limit(100)
       .then(({ data, error }) => {
         if (error || !data) {
           setCategoriesError('Could not load categories.')

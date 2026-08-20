@@ -117,14 +117,27 @@ Deno.serve(async (req) => {
     .eq('question_id', session.current_question_id)
     .order('position', { ascending: true })
 
-  const { error: updateError } = await admin
+  // Guarded on status = 'question_active' (not just id) — a double-click
+  // or a genuine concurrent lock request that both passed the check above
+  // would otherwise both flip the row and both broadcast question_end.
+  const { data: updated, error: updateError } = await admin
     .from('game_sessions')
     .update({ status: 'revealing' })
     .eq('id', sessionId)
+    .eq('status', 'question_active')
+    .select('id')
+    .maybeSingle()
 
   if (updateError) {
     console.error('lock-question update error', updateError)
     return errorResponse('LOCK_FAILED', 'Could not lock the question.', 500)
+  }
+  if (!updated) {
+    return errorResponse(
+      'INVALID_STATUS',
+      'This question was already locked by another request.',
+      409,
+    )
   }
 
   let payload: Record<string, unknown>

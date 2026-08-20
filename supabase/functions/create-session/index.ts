@@ -1,11 +1,17 @@
 import { corsHeaders, errorResponse, jsonResponse } from '../_shared/cors.ts'
 import { generateValidPin } from '../_shared/pin.ts'
+import { checkAndRecordRateLimit } from '../_shared/rateLimit.ts'
 import {
   createAdminClient,
   createCallerClient,
 } from '../_shared/supabaseAdmin.ts'
 
 const MAX_PIN_INSERT_ATTEMPTS = 5
+// Generous — hosting many games in a session is normal use (testing,
+// running back-to-back rounds); this is an abuse backstop against a
+// script minting junk sessions/PINs, not a UX constraint real hosts hit.
+const CREATE_SESSION_RATE_LIMIT_WINDOW_SECONDS = 3600
+const CREATE_SESSION_RATE_LIMIT_MAX_EVENTS = 20
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -28,6 +34,20 @@ Deno.serve(async (req) => {
   }
 
   const admin = createAdminClient()
+
+  const { allowed } = await checkAndRecordRateLimit(
+    admin,
+    `create-session:${userData.user.id}`,
+    CREATE_SESSION_RATE_LIMIT_WINDOW_SECONDS,
+    CREATE_SESSION_RATE_LIMIT_MAX_EVENTS,
+  )
+  if (!allowed) {
+    return errorResponse(
+      'RATE_LIMITED',
+      'Too many sessions created recently. Try again later.',
+      429,
+    )
+  }
 
   let body: { quizId?: unknown } = {}
   try {

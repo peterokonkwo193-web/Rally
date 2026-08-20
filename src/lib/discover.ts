@@ -51,6 +51,7 @@ export async function fetchCategoryNames(): Promise<CategoryName[]> {
     .from('categories')
     .select('id, name')
     .order('sort_order', { ascending: true })
+    .limit(100)
 
   if (error || !data) {
     throw new Error(error?.message ?? 'Could not load categories.')

@@ -62,14 +62,27 @@ Deno.serve(async (req) => {
     return errorResponse('END_SESSION_FAILED', 'Could not load results.', 500)
   }
 
-  const { error: updateError } = await admin
+  // Guarded on status = 'leaderboard' (not just id) — see start-question
+  // for the same pattern; prevents a double-click from broadcasting
+  // game_over twice.
+  const { data: updated, error: updateError } = await admin
     .from('game_sessions')
     .update({ status: 'finished', ended_at: new Date().toISOString() })
     .eq('id', sessionId)
+    .eq('status', 'leaderboard')
+    .select('id')
+    .maybeSingle()
 
   if (updateError) {
     console.error('end-session update error', updateError)
     return errorResponse('END_SESSION_FAILED', 'Could not end the session.', 500)
+  }
+  if (!updated) {
+    return errorResponse(
+      'INVALID_STATUS',
+      'This session was already ended by another request.',
+      409,
+    )
   }
 
   const podium = players.map((p, i) => ({

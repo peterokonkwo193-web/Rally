@@ -96,7 +96,13 @@ Deno.serve(async (req) => {
   const now = new Date()
   const endsAt = new Date(now.getTime() + question.time_limit_sec * 1000)
 
-  const { error: updateError } = await admin
+  // Guard the write with the exact status just read, not just the id — a
+  // concurrent duplicate request (double-click, or a genuine race) that
+  // read the same starting status would otherwise also pass validation
+  // above and also broadcast, giving players two question_start events
+  // for the same question. Only the request that actually flips the row
+  // gets a result back; the loser treats it as a real conflict.
+  const { data: updated, error: updateError } = await admin
     .from('game_sessions')
     .update({
       current_question_id: question.id,
@@ -107,6 +113,9 @@ Deno.serve(async (req) => {
       last_answer_broadcast_at: null,
     })
     .eq('id', sessionId)
+    .eq('status', session.status)
+    .select('id')
+    .maybeSingle()
 
   if (updateError) {
     console.error('start-question update error', updateError)
@@ -114,6 +123,13 @@ Deno.serve(async (req) => {
       'START_QUESTION_FAILED',
       'Could not start the question.',
       500,
+    )
+  }
+  if (!updated) {
+    return errorResponse(
+      'INVALID_STATUS',
+      'This session was already advanced by another request.',
+      409,
     )
   }
 
