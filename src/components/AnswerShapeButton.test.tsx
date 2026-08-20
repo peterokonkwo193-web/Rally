@@ -37,4 +37,15 @@ describe('AnswerShapeButton', () => {
     render(<AnswerShapeButton position={0} onClick={vi.fn()} selected />)
     expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
   })
+
+  it('shows option text when provided, folded into the accessible name', () => {
+    render(<AnswerShapeButton position={1} onClick={vi.fn()} text="Paris" />)
+    expect(screen.getByText('Paris')).toBeInTheDocument()
+    expect(screen.getByRole('button')).toHaveAccessibleName('Blue diamond: Paris')
+  })
+
+  it('still works with no text (shape-only, unchanged behavior)', () => {
+    render(<AnswerShapeButton position={2} onClick={vi.fn()} />)
+    expect(screen.getByRole('button')).toHaveAccessibleName('Yellow circle')
+  })
 })

@@ -9,9 +9,9 @@ A Kahoot-style app: a host projects questions on a shared screen, players answer
 **Two clients, one game.**
 
 - **Host screen** (laptop, projected): question text, the four answer options, a countdown, a live count of how many have answered, then the correct answer and the leaderboard.
-- **Player screen** (phone): on join, then only four large coloured shapes — red triangle, blue diamond, yellow circle, green square. No question text, no option text. Players must look up at the shared screen.
+- **Player screen** (phone): on join, then the question text and the four large coloured shapes — red triangle, blue diamond, yellow circle, green square — each labelled with its option text. Players tap a shape on their own device; no separate shared screen is required to read the question.
 
-That split is the core design constraint. Everything else follows from it.
+**Superseded from the original design:** the player screen originally showed shapes only, with no question or option text, deliberately forcing players to read off a shared host screen the way real Kahoot works. That's been relaxed by explicit product decision — the question and option text are now sent to the player's own device too (§3.2, §8). What has **not** changed, and remains the real security property: players still never receive a real `answer_options.id`, and correctness is still never sent before reveal.
 
 **Superseded from the original design:** both host and player now require a real account (§4a) — signed up or logged in before anything else, **but only once you actually try to host or join** — rather than the host-only anonymous session and nickname-only anonymous player join originally described here. Nickname and avatar come from the account's profile instead of being typed at join time; a nickname can still be overridden for a single game if it collides with someone already in that session. `/` and `/discover` (§4b) are public and require no account at all — the account requirement is scoped to `/host` and `/play`, not the whole site. Early on, `App.tsx` wrapped literally everything in the login gate, including what would have been the very first page a visitor ever saw — that's specifically what §4b fixes.
 
@@ -71,7 +71,7 @@ The client never sends a timestamp. It sends a question ID and an option ID; not
 **Therefore:**
 
 - RLS denies the `anon` role all direct access to `answer_options` and `questions`.
-- Players receive question payloads only through the broadcast channel, and those payloads contain no option text and no correctness flags — just the option count.
+- Players receive question payloads only through the broadcast channel. Those payloads now include the question text and each option's text (position-keyed, product decision — see §1's superseded note), but still carry no real `answer_options.id` and no correctness flags.
 - The correct option ID is broadcast only at reveal, after answers are locked.
 - The host client fetches full question data through an authenticated edge function that verifies it owns the session.
 
@@ -304,14 +304,14 @@ One broadcast channel per session: `room:{session_id}` (not the PIN — the PIN 
 |---|---|
 | `player_joined` | `{ playerId, nickname }` |
 | `player_left` | `{ playerId }` |
-| `question_start` | `{ questionIdx, questionType, optionCount, endsAt, serverNow }` |
+| `question_start` | `{ questionIdx, questionType, text, optionCount, options: [{position, text}], endsAt, serverNow }` |
 | `answer_count` | `{ answered, total }` — aggregate only, never who; throttled to at most one broadcast per 250–500ms even under a burst of simultaneous submissions |
 | `question_end` | `multiple_choice`/`true_false`: `{ questionType, correctPosition, distribution: [n,n,n,n] }` — position (0-3), not a raw `answer_options.id`, players never handle real option ids. `type_answer`: `{ questionType, acceptedAnswers: string[], correctCount, incorrectCount }` instead — no position grid for free text (§4c) |
 | `leaderboard` | `{ top: [{playerId, nickname, score}] }` broadcast, plus each connecting client resolves its own rank client-side from the full list, or via a targeted per-player fetch if the roster is large (see §12 note on room size) |
 | `game_over` | `{ podium: [...] }` |
 | `player_kicked` | `{ playerId }` — every client gets it, only the matching one reacts (§4c) |
 
-Note `question_start` carries no question text and no option text. Players get shapes; the host screen already has the full question from its authenticated fetch.
+Note `question_start` carries question text and option text (product decision, §1) but never a real `answer_options.id` — `options` is keyed by position only, same as the host's own authenticated fetch is keyed by id.
 
 **Presence** on the same channel tracks who's currently connected for the lobby roster and the connected/disconnected indicator. Presence is authoritative for the live "connected" state; `players.connected`/`last_seen_at` in Postgres is only a last-known fallback used by `rejoin-session`, not a second live source of truth.
 

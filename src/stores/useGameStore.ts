@@ -37,7 +37,9 @@ interface HostQuestionData {
 interface QuestionStartPayload {
   questionIdx: number
   questionType: QuestionType
+  text: string
   optionCount: number
+  options: { position: number; text: string }[]
   endsAt: string
   serverNow: string
 }
@@ -69,6 +71,13 @@ interface GameState {
   questionType: QuestionType
   optionCount: number
   endsAt: string | null
+
+  // Player-safe question/option text from the broadcast — position-keyed,
+  // no ids (unlike hostQuestion/hostOptions below). Shown on the player's
+  // own device now (product decision overriding the original "shapes
+  // only, read the shared screen" design — SPEC.md §1).
+  questionText: string | null
+  optionTexts: { position: number; text: string }[]
 
   // Host-only — populated from start-question's HTTP response, not the
   // broadcast (players never receive question text/options, SPEC §3.2).
@@ -111,6 +120,8 @@ const initialState = {
   questionType: 'multiple_choice' as QuestionType,
   optionCount: 4,
   endsAt: null as string | null,
+  questionText: null as string | null,
+  optionTexts: [] as { position: number; text: string }[],
   hostQuestion: null as HostQuestionData['question'] | null,
   hostOptions: [] as HostQuestionData['options'],
   totalQuestions: 0,
@@ -132,6 +143,8 @@ export const useGameStore = create<GameState>((set) => ({
       questionType: payload.questionType,
       optionCount: payload.optionCount,
       endsAt: payload.endsAt,
+      questionText: payload.text,
+      optionTexts: payload.options,
       clockOffsetMs: computeClockOffset(payload.serverNow),
       answerCount: { answered: 0, total: 0 },
       myAnswer: null,

@@ -16,7 +16,12 @@ describe('useGameStore', () => {
     useGameStore.getState().onQuestionStart({
       questionIdx: 0,
       questionType: 'true_false',
+      text: 'The sky is blue.',
       optionCount: 2,
+      options: [
+        { position: 0, text: 'True' },
+        { position: 1, text: 'False' },
+      ],
       endsAt: new Date(Date.now() + 20_000).toISOString(),
       serverNow: new Date().toISOString(),
     })
@@ -24,6 +29,11 @@ describe('useGameStore', () => {
     const state = useGameStore.getState()
     expect(state.phase).toBe('question_active')
     expect(state.questionType).toBe('true_false')
+    expect(state.questionText).toBe('The sky is blue.')
+    expect(state.optionTexts).toEqual([
+      { position: 0, text: 'True' },
+      { position: 1, text: 'False' },
+    ])
     expect(state.myAnswer).toBeNull()
     expect(state.reveal).toBeNull()
     expect(state.leaderboard).toBeNull()

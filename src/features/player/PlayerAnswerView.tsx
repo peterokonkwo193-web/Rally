@@ -12,15 +12,17 @@ interface SubmitAnswerResponse {
   newStreak: number
 }
 
-// Players never receive real option ids (SPEC.md §3.2 — question_start
-// carries only optionCount). Tapping a shape/true-false button submits a
-// position (0-3); submit-answer resolves that to a real answer_options
-// row server-side. type_answer submits raw text instead — see submit
-// -answer's branching for how that's matched.
+// Players see question/option text now (SPEC.md §1) but never receive real
+// option ids — question_start carries position-keyed text only. Tapping a
+// shape/true-false button submits a position (0-3); submit-answer resolves
+// that to a real answer_options row server-side. type_answer submits raw
+// text instead — see submit-answer's branching for how that's matched.
 export function PlayerAnswerView({ sessionId }: { sessionId: string }) {
-  const { optionCount, questionType } = useGameStore((s) => ({
+  const { optionCount, questionType, questionText, optionTexts } = useGameStore((s) => ({
     optionCount: s.optionCount,
     questionType: s.questionType,
+    questionText: s.questionText,
+    optionTexts: s.optionTexts,
   }))
   const [submittedPosition, setSubmittedPosition] = useState<number | null>(null)
   const [submittedText, setSubmittedText] = useState<string | null>(null)
@@ -58,6 +60,12 @@ export function PlayerAnswerView({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-8">
+      {questionText && (
+        <h1 className="max-w-md text-center text-2xl font-bold text-white">
+          {questionText}
+        </h1>
+      )}
+
       {hasSubmitted && (
         <p role="status" className="animate-pulse text-xl font-semibold text-indigo-300">
           Locked in!
@@ -94,6 +102,7 @@ export function PlayerAnswerView({ sessionId }: { sessionId: string }) {
               disabled={hasSubmitted || submitting}
               selected={submittedPosition === position}
               onClick={() => submit({ selectedPosition: position })}
+              text={optionTexts.find((o) => o.position === position)?.text}
             />
           ))}
         </div>

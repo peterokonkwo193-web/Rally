@@ -35,7 +35,7 @@ These come from the spec and are not open to convenience-based reinterpretation.
 
 **1. The server owns time.** Clients never send timestamps. `response_ms` is always computed inside an edge function from `now() - question_started_at`. Client countdowns are display only.
 
-**2. Correct answers never reach the player client.** `answer_options.is_correct` is unreadable by the `anon` role. Question broadcasts to players carry no option text and no correctness data. The correct option ID is sent only at reveal, after answers lock.
+**2. Correct answers never reach the player client.** `answer_options.is_correct` is unreadable by the `anon` role. The correct option ID is sent only at reveal, after answers lock. Question broadcasts to players *do* carry question text and option text (superseded from the original "shapes only, read the shared host screen" design — SPEC.md §1 — by explicit product decision), but never a real `answer_options.id` and never correctness data pre-reveal; that's the part of this rule that actually matters and stays enforced.
 
 **3. All scoring happens in `submit-answer`.** No scoring logic in the client — not even a preview or an optimistic update. There is exactly one implementation of the scoring function, and it lives in `supabase/functions/_shared/scoring.ts` (Deno-importable from every edge function that needs it). It is not duplicated into `src/`; a client-side copy is itself a violation of this rule no matter how it's labeled.
 

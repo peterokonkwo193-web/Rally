@@ -120,7 +120,9 @@ Deno.serve(async (req) => {
   await broadcastToRoom(sessionId, 'question_start', {
     questionIdx: nextIdx,
     questionType: question.question_type,
+    text: question.text,
     optionCount: options.length,
+    options: options.map((o) => ({ position: o.position, text: o.text })),
     endsAt: endsAt.toISOString(),
     serverNow: now.toISOString(),
   })

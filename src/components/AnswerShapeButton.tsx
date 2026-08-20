@@ -37,11 +37,13 @@ export function AnswerShapeButton({
   onClick,
   disabled,
   selected,
+  text,
 }: {
   position: 0 | 1 | 2 | 3
   onClick: () => void
   disabled?: boolean
   selected?: boolean
+  text?: string
 }) {
   const shape = ANSWER_SHAPES[position]
 
@@ -50,13 +52,14 @@ export function AnswerShapeButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      aria-label={shape.label}
+      aria-label={text ? `${shape.label}: ${text}` : shape.label}
       aria-pressed={selected}
-      className={`flex aspect-square w-full items-center justify-center rounded-2xl transition-transform duration-150 ease-out active:scale-90 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed ${shape.colorClass} ${
+      className={`flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-2xl p-3 transition-transform duration-150 ease-out active:scale-90 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed ${shape.colorClass} ${
         selected ? 'scale-95 ring-4 ring-white' : ''
       } ${disabled && !selected ? 'opacity-40' : ''}`}
     >
       <ShapeIcon shape={shape.shape} />
+      {text && <span className="text-lg font-bold text-white">{text}</span>}
     </button>
   )
 }
